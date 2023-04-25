@@ -109,7 +109,7 @@ function HasCollided(bird, barrier){
     return collided
 }
 
-function FlappyBird(){
+function FlappyBird(bestScore){
     let points = 0
     const gamearea = document.querySelector("[wm-flappy]")
     const height = gamearea.clientHeight
@@ -122,15 +122,32 @@ function FlappyBird(){
     gamearea.appendChild(progress.element)
     gamearea.appendChild(bird.element)
     barriers.pairs.forEach(pair => gamearea.appendChild(pair.element))
-
+    this.endGame = () => {
+        bestScore = bestScore > points ? bestScore : points
+        document.querySelector("#totalScore").innerHTML = `Total Score: ${points}`
+        document.querySelector("#bestScore").innerHTML = `Best Score ${bestScore}`
+        document.querySelector(".endgame").style.visibility = "visible" 
+        const replaybutton = document.querySelector("#replay-button").onclick = function(){
+            const bar = document.querySelectorAll(".pair-of-barriers")
+            bar.forEach(b => b.remove())
+            document.querySelector(".bird").remove()
+            document.querySelector(".progress").remove()
+            document.querySelector(".endgame").style.visibility = "hidden" 
+            new FlappyBird(bestScore).start()
+        }
+    }
+    
     this.start = () => {
         const timer = setInterval(() => {
             barriers.animate()
             bird.animate()
             if(HasCollided(bird,barriers)){
                 clearInterval(timer)
+                this.endGame()
             }
         }, 20);
     } 
+
 }
-new FlappyBird().start()
+new FlappyBird(0).start()
+
