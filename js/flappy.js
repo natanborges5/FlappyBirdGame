@@ -1,6 +1,7 @@
-function newElement(tagName, className){
+function newElement(tagName, className, idName){
     const element = document.createElement(tagName)
     element.className = className
+    element.id = idName
     return element
 }
 function Barrier(reverse = false){
@@ -57,9 +58,9 @@ function Barriers(height, width, openness, space, notifyPoints){
         })
     }
 }
-function Bird(gameHeight){
+function Bird(gameHeight,idName){
     let fly = false
-    this.element = new newElement("img", "bird")
+    this.element = new newElement("img", "bird",idName)
     this.element.src = "imgs/passaro.png"
 
     this.getYPosition = () => parseInt(this.element.style.bottom.split("px")[0])
@@ -181,27 +182,17 @@ function Genetic(){
         return population;
     }
     
-    function fitness(individual, inputs, expectedOutputs) {
-        let sumSquaredError = 0;
-        for (let i = 0; i < inputs.length; i++) {
-            let hiddenOutputs = hiddenLayer(inputs[i], individual);
-            let output = outputLayer(hiddenOutputs, individual);
-            let error = expectedOutputs[i] - output;
-            sumSquaredError += error * error;
-        }
-        return 1 / (1 + Math.sqrt(sumSquaredError / inputs.length));
-    }
-    function selectParents(population, fitnessFunction) {
+    function selectParents(population) {
         let fitnessSum = 0;
         for (let i = 0; i < population.length; i++) {
-            fitnessSum += fitnessFunction(population[i]);
+            fitnessSum += population[i].fitness;
         }
         let parents = [];
         for (let i = 0; i < 2; i++) {
             let randomFitness = Math.random() * fitnessSum;
             let currentSum = 0;
             for (let j = 0; j < population.length; j++) {
-                currentSum += fitnessFunction(population[j]);
+                currentSum += population[j].fitness;
                 if (currentSum > randomFitness) {
                     parents.push(population[j]);
                     break;
@@ -215,33 +206,77 @@ function Genetic(){
             hidden: [],
             output: []
         };
-        for (let i = 0; i < parents[0].hidden.length; i++) {
-            let hiddenWeights = [];
-            for (let j = 0; j < parents[0].hidden[i].length; j++) {
-                let parentIndex = Math.floor(Math.random() * 2);
-                hiddenWeights.push(parents[parentIndex].hidden[i][j]);
+        for (let i = 0; i < parents[0].weights.hidden.length; i++) {
+            let hiddenWeights = []
+            for (let j = 0; j < parents[0].weights.hidden[i].length; j++) {
+                if(Math.random() < 0.10){
+                    hiddenWeights.push(Math.random() * (1 - -1) + -1,)
+                }else{
+                    let parentIndex = Math.floor(Math.random() * 2)
+                    hiddenWeights.push(parents[parentIndex].weights.hidden[i][j])
+                }
             }
             child.hidden.push(hiddenWeights)
         }
-        for (let i = 0; i < parents[0].output.length; i++) {
-            let outputWeights = [];
-            for (let j = 0; j < parents[0].output[i].length; j++) {
-                let parentIndex = Math.floor(Math.random() * 2);
-                outputWeights.push(parents[parentIndex].output[i][j]);
+        for (let i = 0; i < parents[0].weights.output.length; i++) {
+            let outputWeights = []
+            for (let j = 0; j < parents[0].weights.output[i].length; j++) {
+                if(Math.random() < 0.20){
+                    outputWeights.push(Math.random() * (1 - -1) + -1,)
+                }else{
+                    let parentIndex = Math.floor(Math.random() * 2)
+                    outputWeights.push(parents[parentIndex].weights.output[i][j])
+                }
             }
             child.output.push(outputWeights)
         }
-        return child;
+        return child
     }
     this.trainGenetic = async () => {
-        const population = generatePopulation(10, 2, 6, 1)
-        const game = new FlappyBirdForTraining(population)
-        const result = await game.start()
+        const generations = 400
+        let bestfitness = 0
+        document.querySelector(".train-area").style.visibility = "visible"
+        let population = generatePopulation(30, 3, 6, 1)
+        for(let i = 0; i < generations; i++){
+            document.querySelector("#generation").innerHTML = `Generation ${i + 1}`
+            const game = new FlappyBirdForTraining(population)
+            const result = await game.start()
+            const organizedData = this.OrganizeIndividuals(result)
+            if(bestfitness < organizedData[0].fitness) bestfitness = organizedData[0].fitness
+            let newPopulation = []
+            for(let k = 0; k < organizedData.length; k++){
+                const percenteForSave = (15*organizedData.length)/100
+                if(k <= percenteForSave){
+                    newPopulation.push(organizedData[k].weights)
+                }else{
+                    const parents = selectParents(organizedData)
+                    const child = crossover(parents)
+                    newPopulation.push(child)
+                }   
+            }
+            document.querySelector("#bestfitness").innerHTML = `Best Fitness: ${bestfitness}`
+            population = newPopulation
+        }
         console.log("Finalizou!!")
-
     }
-    
-    
+    this.OrganizeIndividuals = (birds) =>{
+        const order = birds.sort(function(a, b){
+            if(a.fitness < b.fitness){
+                return -1 * -1
+            }else if(a.fitness > b.fitness){
+                return 1 * -1
+            }else {
+                return 0 * -1
+            }
+        })
+        return order.map(function(item, indice){
+            const newobj = {
+                weights: item.weights,
+                fitness: item.fitness
+            }
+            return newobj
+        })
+    }
 }
 
 function FlappyBirdForTraining(population){
@@ -254,16 +289,19 @@ function FlappyBirdForTraining(population){
     const barriers = new Barriers(height, width, 200, 400,() => progress.updatePoints(++points))
 
     this.BirdAndWeights = []
-    population.forEach(pair => {
+    let counterr = 0
+    population.forEach(individual => {
         const pop = {
-            bird: new Bird(height),
+            bird: new Bird(height,`bird${counterr}`),
             weights: {
-                hidden: pair.hidden,
-                output: pair.output
+                hidden: individual.hidden,
+                output: individual.output
             },
             alive: true,
-            fitness: 0
+            fitness: 0,
+            id: counterr
         }
+        counterr++
         gamearea.appendChild(pop.bird.element)
         this.BirdAndWeights.push(pop)
     })
@@ -273,7 +311,7 @@ function FlappyBirdForTraining(population){
     gamearea.appendChild(progress.element)
     barriers.pairs.forEach(pair => gamearea.appendChild(pair.element))
     this.NextBarrier = () => {
-        const mid = width / 2
+        const mid = width / 2 - 145
         barriers.pairs.forEach(function callback(pair,index){
             if(pair.getPosition() + 3 >= mid && pair.getPosition() < mid){
                 if(actualBarrier == 3){
@@ -287,9 +325,9 @@ function FlappyBirdForTraining(population){
     this.endGame = () => {
         const bar = document.querySelectorAll(".pair-of-barriers")
         bar.forEach(b => b.remove())
-        document.querySelector(".bird").remove()
+        const birds = document.querySelectorAll(".bird")
+        birds.forEach(b => b.remove())
         document.querySelector(".progress").remove()
-        //new FlappyBird(bestScore).start()
     }
     this.start = () => {
         return new Promise((resolve, reject) => {
@@ -297,32 +335,33 @@ function FlappyBirdForTraining(population){
                 for(let i = 0; i < this.BirdAndWeights.length; i++){
                     let pop = this.BirdAndWeights[i]
                     if(this.IsAllDead(this.BirdAndWeights)){
-                        clearInterval(timer)
                         this.endGame()
+                        clearInterval(timer)
                         resolve(this.BirdAndWeights)
                         break
                     }
                     if(pop.alive == false) continue
                     const bird = pop.bird
-                    barriers.animate()
-                    this.NextBarrier()
                     const inputs = [
                         bird.getYPosition(),
-                        parseFloat(barriers.pairs[actualBarrier].passageBottom.toFixed()) 
+                        parseFloat(barriers.pairs[actualBarrier].passageBottom.toFixed()),
+                        parseFloat(barriers.pairs[actualBarrier].getPosition() - width / 2)
                     ]
                     const outputnn = neuralNetwork.UseNn(inputs, pop.weights.hidden, pop.weights.output)
-                    console.log(outputnn)
+                    //console.log(outputnn)
                     bird.animate(outputnn)
-                    if(actualBarrier == 2) pop.fitness += 200
+                    const midCrossed = barriers.pairs[actualBarrier].getPosition() + 3 >= width / 2 && barriers.pairs[actualBarrier].getPosition() < width / 2
+                    if(midCrossed) pop.fitness += 200
                     pop.fitness++
-                    if(HasCollided(bird,barriers)){
+                    if(HasCollided(bird,barriers) || pop.fitness > 6000){
                         pop.alive = false
+                        $(`#bird${pop.id}`).hide(300)
                     }
                 }
+                barriers.animate()
+                this.NextBarrier()
             }, 20);
         })
-        
-        console.log("passou aq")
         
     }
     this.IsAllDead = (arr) =>{
@@ -336,34 +375,50 @@ function FlappyBirdForTraining(population){
     }
 }
 function FlappyBird(bestScore){
-    let hiddenWeights = [
-        [           
-            Math.random() * (1 - -1) + -1,
-            Math.random() * (1 - -1) + -1,
-            Math.random() * (1 - -1) + -1,
-            Math.random() * (1 - -1) + -1,
-            Math.random() * (1 - -1) + -1,
-            Math.random() * (1 - -1) + -1,
+    const weights = {
+        hidden: [
+            [
+                0.6339923078552472,
+                -0.847899406986572,
+                -0.6391468501549209
+            ],
+            [
+                -0.3934794052998143,
+                0.019160110133197072,
+                0.2707595827618463
+            ],
+            [
+                -0.564502988896566,
+                -0.6827439048843593,
+                0.6901929944094527
+            ],
+            [
+                -0.6078112151432853,
+                0.11827422390278386,
+                -0.48022349047653545
+            ],
+            [
+                -0.4002554410962724,
+                0.4995434112894994,
+                -0.3856492419616635
+            ],
+            [
+                -0.3533575252222474,
+                0.5964316608327587,
+                -0.6113570422834598
+            ]
         ],
-        [           
-            Math.random() * (1 - -1) + -1,
-            Math.random() * (1 - -1) + -1,
-            Math.random() * (1 - -1) + -1,
-            Math.random() * (1 - -1) + -1,
-            Math.random() * (1 - -1) + -1,
-            Math.random() * (1 - -1) + -1,
+        output: [
+            [
+                -0.6588013962257588,
+                0.9504182026449577,
+                0.6772115586017611,
+                0.43631179196815806,
+                -0.18987345468471828,
+                0.8301422125499842
+            ]
         ]
-    ]
-    let outputWeights = [
-        [
-            Math.random() * (1 - -1) + -1,
-            Math.random() * (1 - -1) + -1,
-            Math.random() * (1 - -1) + -1,
-            Math.random() * (1 - -1) + -1,
-            Math.random() * (1 - -1) + -1,
-            Math.random() * (1 - -1) + -1
-        ]
-    ];
+    }
     let points = 0
     const gamearea = document.querySelector("[wm-flappy]")
     const height = gamearea.clientHeight
@@ -393,7 +448,7 @@ function FlappyBird(bestScore){
         }
     }
     this.NextBarrier = () => {
-        const mid = width / 2
+        const mid = width / 2 - 120
         barriers.pairs.forEach(function callback(pair,index){
             if(pair.getPosition() + 3 >= mid && pair.getPosition() < mid){
                 if(actualBarrier == 3){
@@ -410,16 +465,17 @@ function FlappyBird(bestScore){
             this.NextBarrier()
             const inputs = [
                 bird.getYPosition(),
-                parseFloat(barriers.pairs[actualBarrier].passageBottom.toFixed()) 
+                parseFloat(barriers.pairs[actualBarrier].passageBottom.toFixed()) ,
+                parseFloat(barriers.pairs[actualBarrier].getPosition() - width / 2)
             ]
-            const outputnn = neuralNetwork.UseNn(inputs,hiddenWeights,outputWeights)
+            const outputnn = neuralNetwork.UseNn(inputs,weights.hidden,weights.output)
             console.log(outputnn)
             bird.animate(outputnn)
 
-            // if(HasCollided(bird,barriers)){
-            //     clearInterval(timer)
-            //     this.endGame()
-            // }
+            if(HasCollided(bird,barriers)){
+                clearInterval(timer)
+                this.endGame()
+            }
         }, 20);
     } 
 }
