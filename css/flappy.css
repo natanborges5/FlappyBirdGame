@@ -41,6 +41,9 @@ body {
     width: 60px;
     left: calc(50% - 30px);
 }
+#playerbird{
+    z-index: 100;
+}
 .pair-of-barriers{
     position: absolute;
     top: 0;

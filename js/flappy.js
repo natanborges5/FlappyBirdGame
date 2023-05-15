@@ -47,6 +47,7 @@ function Barriers(height, width, openness, space, notifyPoints){
         new PairOfBarriers(height, openness, width + space * 3)
     ]
     const barrierVelocity = 3
+    this.actualBarrier = 0
     this.animate = () => {
         this.pairs.forEach(pair => {
             pair.setPosition(pair.getPosition() - barrierVelocity)
@@ -59,19 +60,43 @@ function Barriers(height, width, openness, space, notifyPoints){
             if(midCrossed) notifyPoints()
         })
     }
+    this.NextBarrier = () => {
+        const mid = width / 2 - 140
+        let newbarrier = this.actualBarrier
+        this.pairs.forEach(function callback(pair,index){
+            if(pair.getPosition() + 3 >= mid && pair.getPosition() < mid){
+                if(newbarrier == 3){
+                    newbarrier = 0
+                }else{
+                    newbarrier++
+                }
+            }
+        })
+        this.actualBarrier = newbarrier
+    }
 }
-function Bird(gameHeight,idName){
+function Bird(gameHeight,idName,birdIA){
     let fly = false
     this.element = new newElement("img", "bird",idName)
-    this.element.src = "imgs/passaro.png"
+    this.element.src =  birdIA ? "imgs/passaroIA.png" : "imgs/passaro.png"
 
     this.getYPosition = () => parseInt(this.element.style.bottom.split("px")[0])
     this.setYposition = y => this.element.style.bottom = `${y}px`
 
-    window.onkeydown = e => fly = true
-    window.onkeyup = e => fly = false
-    
-    this.animate = (flyOrNot) => {
+    this.animate = () => {
+        window.onkeydown = e => fly = true
+        window.onkeyup = e => fly = false
+        const newY = this.getYPosition() + (fly ? 8 : -5)
+        const maxHeight = gameHeight - this.element.clientHeight
+        if(newY <= 0){
+            this.setYposition(0)
+        }else if (newY >= maxHeight){
+            this.setYposition(maxHeight)
+        }else{
+            this.setYposition(newY)
+        }
+    }
+    this.animateAI = (flyOrNot) => {
         if(flyOrNot > 0.5){
             fly = true
         }else{
@@ -235,7 +260,7 @@ function Genetic(){
         return child
     }
     this.trainGenetic = async () => {
-        const generations = 200
+        const generations = 100
         let bestfitness = 0
         document.querySelector(".train-area").style.visibility = "visible"
         let population = generatePopulation(50, 4, 6, 1)
@@ -309,21 +334,9 @@ function FlappyBirdForTraining(population){
     })
 
     const neuralNetwork = new NeuralNetwork()
-    let actualBarrier = 0
     gamearea.appendChild(progress.element)
     barriers.pairs.forEach(pair => gamearea.appendChild(pair.element))
-    this.NextBarrier = () => {
-        const mid = width / 2 - 140
-        barriers.pairs.forEach(function callback(pair,index){
-            if(pair.getPosition() + 3 >= mid && pair.getPosition() < mid){
-                if(actualBarrier == 3){
-                    actualBarrier = 0
-                }else{
-                    actualBarrier++
-                }
-            }
-        })
-    }
+
     this.endGame = () => {
         const bar = document.querySelectorAll(".pair-of-barriers")
         bar.forEach(b => b.remove())
@@ -335,7 +348,7 @@ function FlappyBirdForTraining(population){
         let generationFitness = 0
         return new Promise((resolve, reject) => {
             const timer = setInterval(() => {
-                const midCrossed = barriers.pairs[actualBarrier].getPosition() + 3 >= width / 2 && barriers.pairs[actualBarrier].getPosition() < width / 2
+                const midCrossed = barriers.pairs[barriers.actualBarrier].getPosition() + 3 >= width / 2 && barriers.pairs[barriers.actualBarrier].getPosition() < width / 2
                 for(let i = 0; i < this.BirdAndWeights.length; i++){
                     let pop = this.BirdAndWeights[i]
                     if(this.IsAllDead(this.BirdAndWeights)){
@@ -348,12 +361,12 @@ function FlappyBirdForTraining(population){
                     const bird = pop.bird
                     const inputs = [
                         bird.getYPosition(),
-                        parseFloat(barriers.pairs[actualBarrier].passageBottom.toFixed()),
-                        parseFloat(barriers.pairs[actualBarrier].passageTop.toFixed()),
-                        parseFloat(barriers.pairs[actualBarrier].getPosition() - width / 2)
+                        parseFloat(barriers.pairs[barriers.actualBarrier].passageBottom.toFixed()),
+                        parseFloat(barriers.pairs[barriers.actualBarrier].passageTop.toFixed()),
+                        parseFloat(barriers.pairs[barriers.actualBarrier].getPosition() - width / 2)
                     ]
                     const outputnn = neuralNetwork.UseNn(inputs, pop.weights.hidden, pop.weights.output)
-                    bird.animate(outputnn)
+                    bird.animateAI(outputnn)
                     
                     if(midCrossed){
                         pop.fitness += 200
@@ -366,10 +379,12 @@ function FlappyBirdForTraining(population){
                 }
                 if(midCrossed) generationFitness += 200
                 generationFitness++
-                document.querySelector("#generationFitness").innerHTML = `Generation Fitness: ${generationFitness}` 
+                document.querySelector("#generationFitness").innerHTML = `Generation Best Fitness: ${generationFitness}` 
                 barriers.animate()
-                this.NextBarrier()
+                barriers.NextBarrier()
+                console.log(barriers.actualBarrier)
             }, 20);
+            
         })
         
     }
@@ -383,7 +398,7 @@ function FlappyBirdForTraining(population){
         }else false
     }
 }
-function FlappyBird(bestScore){
+function FlappyBird(bestScore,Singleplayer){
     const weights = {
         hidden: [
             [
@@ -442,66 +457,75 @@ function FlappyBird(bestScore){
 
     const progress = new Progress()
     const barriers = new Barriers(height, width, 200, 400,() => progress.updatePoints(++points))
-    const bird = new Bird(height)
+    const bird = new Bird(height,"playerbird")
+
     const neuralNetwork = new NeuralNetwork()
-    let actualBarrier = 0
     gamearea.appendChild(progress.element)
     gamearea.appendChild(bird.element)
+    const birdIA = new Bird(height,"birdIA",true)
+    if(!Singleplayer){
+        gamearea.appendChild(birdIA.element)
+    }
     barriers.pairs.forEach(pair => gamearea.appendChild(pair.element))
-
+    let aiDied = false
     this.endGame = () => {
         bestScore = bestScore > points ? bestScore : points
         document.querySelector("#totalScore").innerHTML = `Total Score: ${points}`
+        if(!aiDied){
+            document.querySelector("#multiplayer-winner").innerHTML = `The winner is the Artificial Inteligence!!`
+        }else{
+            document.querySelector("#multiplayer-winner").innerHTML = `The winner is the Human Player!!`
+        }
         document.querySelector("#bestScore").innerHTML = `Best Score ${bestScore}`
         document.querySelector(".endgame").style.visibility = "visible" 
         document.querySelector("#replay-button").onclick = function(){
             const bar = document.querySelectorAll(".pair-of-barriers")
             bar.forEach(b => b.remove())
             document.querySelector(".bird").remove()
+            document.querySelector("#birdIA").remove()
             document.querySelector(".progress").remove()
             document.querySelector(".endgame").style.visibility = "hidden" 
-            new FlappyBird(bestScore).start()
-        }
-    }
-    this.NextBarrier = () => {
-        const mid = width / 2 - 140
-        barriers.pairs.forEach(function callback(pair,index){
-            if(pair.getPosition() + 3 >= mid && pair.getPosition() < mid){
-                if(actualBarrier == 3){
-                    actualBarrier = 0
-                }else{
-                    actualBarrier++
-                }
+            if(Singleplayer){
+                new FlappyBird(bestScore,true).start()
             }
-        })
+            new FlappyBird(bestScore,false).start()
+            
+        }
     }
     this.start = () => {
         const timer = setInterval(() => {
             barriers.animate()
-            this.NextBarrier()
-            const inputs = [
-                bird.getYPosition(),
-                parseFloat(barriers.pairs[actualBarrier].passageBottom.toFixed()),
-                parseFloat(barriers.pairs[actualBarrier].passageTop.toFixed()),
-                parseFloat(barriers.pairs[actualBarrier].getPosition() - width / 2)
-            ]
-            const outputnn = neuralNetwork.UseNn(inputs,weights.hidden,weights.output)
-            bird.animate(outputnn)
-
+            barriers.NextBarrier()
+            if(!Singleplayer){
+                const inputs = [
+                    birdIA.getYPosition(),
+                    parseFloat(barriers.pairs[barriers.actualBarrier].passageBottom.toFixed()),
+                    parseFloat(barriers.pairs[barriers.actualBarrier].passageTop.toFixed()),
+                    parseFloat(barriers.pairs[barriers.actualBarrier].getPosition() - width / 2)
+                ]
+                const outputnn = neuralNetwork.UseNn(inputs,weights.hidden,weights.output)
+                birdIA.animateAI(outputnn)
+            }
+            bird.animate()
             if(HasCollided(bird,barriers)){
+                $("#playerbird").hide(450)
                 clearInterval(timer)
                 this.endGame()
+            }
+            if(HasCollided(birdIA,barriers)){
+                $("#birdIA").hide(450)
+                aiDied = true
             }
         }, 20);
     } 
 }
 function FlappyMenu(){
     document.querySelector("#singleplayer-button").onclick = function(){
-        new FlappyBird(0).start()
+        new FlappyBird(0,true).start()
         document.querySelector(".gamemenu").style.visibility = "hidden" 
     }
     document.querySelector("#multiplayer-button").onclick = function(){
-        new FlappyBird(0).start()
+        new FlappyBird(0,false).start()
         document.querySelector(".gamemenu").style.visibility = "hidden" 
     }
     document.querySelector("#trainia-button").onclick = function(){
