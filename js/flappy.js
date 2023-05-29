@@ -239,9 +239,9 @@ function Genetic(){
                 let parentIndex = Math.floor(Math.random() * 2)
                 if(Math.random() < 0.10){
                     if(Math.random() < 0.50){
-                        hiddenWeights.push(parents[parentIndex].weights.hidden[i][j] * 1.05)
+                        hiddenWeights.push(parents[parentIndex].weights.hidden[i][j] * 1.08)
                     }else {
-                        hiddenWeights.push(parents[parentIndex].weights.hidden[i][j] * 0.95)
+                        hiddenWeights.push(parents[parentIndex].weights.hidden[i][j] * 0.92)
                     }
                 }else{
                     hiddenWeights.push(parents[parentIndex].weights.hidden[i][j])
@@ -253,12 +253,12 @@ function Genetic(){
             let outputWeights = []
             for (let j = 0; j < parents[0].weights.output[i].length; j++) {
                 let parentIndex = Math.floor(Math.random() * 2)
-                if(Math.random() < 0.20){
+                if(Math.random() < 0.10){
                     //outputWeights.push(Math.random() * (1 - -1) + -1,)
                     if(Math.random() < 0.50){
-                        outputWeights.push(parents[parentIndex].weights.output[i][j] * 1.05)
+                        outputWeights.push(parents[parentIndex].weights.output[i][j] * 1.08)
                     }else {
-                        outputWeights.push(parents[parentIndex].weights.output[i][j] * 0.95)
+                        outputWeights.push(parents[parentIndex].weights.output[i][j] * 0.92)
                     }
                 }else{
                     outputWeights.push(parents[parentIndex].weights.output[i][j])
