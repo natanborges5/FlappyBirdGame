@@ -44,6 +44,9 @@ body {
 #playerbird{
     z-index: 100;
 }
+#multiplayer-winner{
+    visibility: hidden;
+}
 .pair-of-barriers{
     position: absolute;
     top: 0;

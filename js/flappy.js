@@ -236,10 +236,14 @@ function Genetic(){
         for (let i = 0; i < parents[0].weights.hidden.length; i++) {
             let hiddenWeights = []
             for (let j = 0; j < parents[0].weights.hidden[i].length; j++) {
+                let parentIndex = Math.floor(Math.random() * 2)
                 if(Math.random() < 0.10){
-                    hiddenWeights.push(Math.random() * (1 - -1) + -1,)
+                    if(Math.random() < 0.50){
+                        hiddenWeights.push(parents[parentIndex].weights.hidden[i][j] * 1.05)
+                    }else {
+                        hiddenWeights.push(parents[parentIndex].weights.hidden[i][j] * 0.95)
+                    }
                 }else{
-                    let parentIndex = Math.floor(Math.random() * 2)
                     hiddenWeights.push(parents[parentIndex].weights.hidden[i][j])
                 }
             }
@@ -248,10 +252,15 @@ function Genetic(){
         for (let i = 0; i < parents[0].weights.output.length; i++) {
             let outputWeights = []
             for (let j = 0; j < parents[0].weights.output[i].length; j++) {
+                let parentIndex = Math.floor(Math.random() * 2)
                 if(Math.random() < 0.20){
-                    outputWeights.push(Math.random() * (1 - -1) + -1,)
+                    //outputWeights.push(Math.random() * (1 - -1) + -1,)
+                    if(Math.random() < 0.50){
+                        outputWeights.push(parents[parentIndex].weights.output[i][j] * 1.05)
+                    }else {
+                        outputWeights.push(parents[parentIndex].weights.output[i][j] * 0.95)
+                    }
                 }else{
-                    let parentIndex = Math.floor(Math.random() * 2)
                     outputWeights.push(parents[parentIndex].weights.output[i][j])
                 }
             }
@@ -372,7 +381,7 @@ function FlappyBirdForTraining(population){
                         pop.fitness += 200
                     } 
                     pop.fitness++
-                    if(HasCollided(bird,barriers) || pop.fitness > 10000){
+                    if(HasCollided(bird,barriers) || pop.fitness > 20000){
                         pop.alive = false
                         $(`#bird${pop.id}`).hide(300)
                     }
@@ -478,17 +487,20 @@ function FlappyBird(bestScore,Singleplayer){
         }
         document.querySelector("#bestScore").innerHTML = `Best Score ${bestScore}`
         document.querySelector(".endgame").style.visibility = "visible" 
+        if(!Singleplayer) document.querySelector("#multiplayer-winner").style.visibility = "visible"
+        
         document.querySelector("#replay-button").onclick = function(){
             const bar = document.querySelectorAll(".pair-of-barriers")
             bar.forEach(b => b.remove())
             document.querySelector(".bird").remove()
-            document.querySelector("#birdIA").remove()
+            if(!Singleplayer) document.querySelector("#birdIA").remove()
             document.querySelector(".progress").remove()
             document.querySelector(".endgame").style.visibility = "hidden" 
+            document.querySelector("#multiplayer-winner").style.visibility = "hidden"
             if(Singleplayer){
                 new FlappyBird(bestScore,true).start()
-            }
-            new FlappyBird(bestScore,false).start()
+            }else new FlappyBird(bestScore,false).start()
+            
             
         }
     }
