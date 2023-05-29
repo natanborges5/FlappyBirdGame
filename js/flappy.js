@@ -238,11 +238,10 @@ function Genetic(){
             for (let j = 0; j < parents[0].weights.hidden[i].length; j++) {
                 let parentIndex = Math.floor(Math.random() * 2)
                 if(Math.random() < 0.10){
-                    if(Math.random() < 0.50){
-                        hiddenWeights.push(parents[parentIndex].weights.hidden[i][j] * 1.09)
-                    }else {
-                        hiddenWeights.push(parents[parentIndex].weights.hidden[i][j] * 0.93)
-                    }
+                    const chance = Math.random()
+                    if(chance < 0.21) hiddenWeights.push(Math.random() * (1 - -1) + -1,)
+                    else if(chance > 0.21 && chance < 0.61) hiddenWeights.push(parents[parentIndex].weights.hidden[i][j] * 1.09)
+                    else hiddenWeights.push(parents[parentIndex].weights.hidden[i][j] * 0.93)
                 }else{
                     hiddenWeights.push(parents[parentIndex].weights.hidden[i][j])
                 }
@@ -254,12 +253,10 @@ function Genetic(){
             for (let j = 0; j < parents[0].weights.output[i].length; j++) {
                 let parentIndex = Math.floor(Math.random() * 2)
                 if(Math.random() < 0.10){
-                    //outputWeights.push(Math.random() * (1 - -1) + -1,)
-                    if(Math.random() < 0.50){
-                        outputWeights.push(parents[parentIndex].weights.output[i][j] * 1.09)
-                    }else {
-                        outputWeights.push(parents[parentIndex].weights.output[i][j] * 0.93)
-                    }
+                    const chance = Math.random()
+                    if(chance < 0.21) outputWeights.push(Math.random() * (1 - -1) + -1,)
+                    else if(chance > 0.21 && chance < 0.61) outputWeights.push(parents[parentIndex].weights.output[i][j] * 1.09)
+                    else outputWeights.push(parents[parentIndex].weights.output[i][j] * 0.93)
                 }else{
                     outputWeights.push(parents[parentIndex].weights.output[i][j])
                 }
