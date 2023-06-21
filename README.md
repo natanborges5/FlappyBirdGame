@@ -12,27 +12,11 @@
 
 ## 📝 [Game Context](#contexto-geral)
 O jogo foi criado todo em JavaScript, HTML e CSS com o objetivo de praticar as minhas habilidades com essas tecnologias e aprender inteligencia artificial.
+O objetivo do jogo é passar por dentro dos canos sem toca-los, o primeiro jogador que tocar nos canos perde.
+A inteligencia artificial foi desenvolvida usando somente JavaScript, sem nenhuma biblioteca auxiliar, foi criado uma rede neural com 6 neuronios com uma camada escondida, na entrada da camada escondida é usado a função de ativação ReLu e na saida Sigmoid. Para treinar a 
 
-A Loja Micro Service nasceu como uma necessidade da Pet Friends com a intenção de permitir gerenciar Lojas e mostrar as ofertas de produtos.
-Com base nisso, a Pet Friends seguiu com a seguinte estrutura:
 
 <img width="663" alt="image" src="https://user-images.githubusercontent.com/43764175/207766798-04b4a2ad-4e63-4443-b092-714e3ba80caa.png">
-
-
-Tendo os serviços de:
-- Assinatura
-- Pedido
-- Pagamento
-- Loja
-- Produto
-- Cliente
-
-Cada serviço ficou com um desenvolvedor(a) responsável e também a comunicação entre os serviços foi gerenciada
-pelas pessoas responsáveis pelo mesmo.
-
-O serviço de Loja consulta apenas o serviço de Produtos a partir de consultas HTTP.
-
-**Nesta documentação focaremos exclusivamente no serviço de Loja.**
 
 ## 🌳 [Árvore de pastas](#arvore-de-pastas)
 
